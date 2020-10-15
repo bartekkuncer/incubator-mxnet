@@ -45,6 +45,8 @@ namespace op {
 namespace layernorm {
 enum LayerNormOpInputs {kData, kGamma, kBeta};  // kGamma: scaling parameters, kBeta: shift biases
 enum LayerNormOpOutputs {kOut, kMean, kStd};  // req, out_data
+enum LayerNormOpInputsBwd {kBOgrad, kBData, kBGamma, kBMean, kBStd, kBBeta};  // kBGamma: scaling parameters, kBBeta: shift biases
+enum LayerNormOpOutputsBwd {kBDgrad, kBGgrad, kBBgrad};  // req, out_data; kBDgrad - data grad, kBGgrad - gamma grad, kBBgrad - beta grad
 }  // namespace layernorm
 
 struct LayerNormParam : public dmlc::Parameter<LayerNormParam> {
@@ -60,6 +62,12 @@ struct LayerNormParam : public dmlc::Parameter<LayerNormParam> {
       .describe("An `epsilon` parameter to prevent division by 0.");
     DMLC_DECLARE_FIELD(output_mean_var).set_default(false)
       .describe("Output the mean and std calculated along the given axis.");
+  }
+
+  bool operator==(const LayerNormParam& other) const {
+    return (this->axis == other.axis &&
+            this->eps == other.eps &&
+            this->output_mean_var == other.output_mean_var);
   }
 };
 
@@ -193,7 +201,12 @@ void LayerNormGradComputeGeneral(const nnvm::NodeAttrs& attrs,
                                  const std::vector<TBlob>& outputs) {
   using namespace mshadow;
   using namespace mshadow::expr;
+#if MXNET_USE_MKLDNN == 1
+  CHECK_EQ(inputs.size(), 6U); // additional beta tensor
+#else
   CHECK_EQ(inputs.size(), 5U);
+#endif
+
   const LayerNormParam& param = nnvm::get<LayerNormParam>(attrs.parsed);
   int axis = param.axis;
   if (axis < 0) {
@@ -347,4 +360,17 @@ void LayerNormGradComputeGeneral(const nnvm::NodeAttrs& attrs,
 
 }  // namespace op
 }  // namespace mxnet
+
+namespace std {
+template<>
+struct hash<mxnet::op::LayerNormParam> {
+  size_t operator()(const mxnet::op::LayerNormParam& val) {
+    size_t ret = 0;
+    ret = dmlc::HashCombine(ret, val.axis);
+    ret = dmlc::HashCombine(ret, val.eps);
+    ret = dmlc::HashCombine(ret, val.output_mean_var);
+    return ret;
+  }
+};
+}  // namespace std
 #endif  // MXNET_OPERATOR_NN_LAYER_NORM_INL_H_
