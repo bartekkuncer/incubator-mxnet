@@ -23,7 +23,7 @@
  */
 
 #include "./dot-inl.h"
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
 #include "../nn/mkldnn/mkldnn_dot-inl.h"
 #endif
 
@@ -95,7 +95,7 @@ above patterns, ``dot`` will fallback and generate output with default storage.
 .set_attr<THasDeterministicOutput>("THasDeterministicOutput", true)
 .set_attr<FCompute>("FCompute<cpu>", DotForward_<cpu>)
 .set_attr<FComputeEx>("FComputeEx<cpu>", DotForwardEx<cpu>)
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
 .set_attr<bool>("TIsMKLDNN", true)
 #endif
 .set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseIn{"_backward_dot"})
@@ -103,7 +103,7 @@ above patterns, ``dot`` will fallback and generate output with default storage.
 .add_argument("rhs", "NDArray-or-Symbol", "The second input")
 .add_arguments(DotParam::__FIELDS__());
 
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
 inline bool SupportMKLDNNDot(const std::vector<NDArray>& inputs,
                              const std::vector<NDArray>& outputs) {
   const auto in_dtype = inputs[0].dtype();

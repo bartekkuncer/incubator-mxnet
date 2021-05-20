@@ -91,6 +91,7 @@ struct DotParam : public dmlc::Parameter<DotParam> {
     } else {
       (*dict)["forward_stype"] = forward_stype_s.str();
     }
+  }
   bool operator==(const DotParam& other) const {
     return this->transpose_a == other.transpose_a &&
            this->transpose_b == other.transpose_b &&
@@ -271,7 +272,7 @@ inline bool DotForwardInferStorageType(const nnvm::NodeAttrs& attrs,
     target_stype = hint_has_value ? target_stype : kDefaultStorage;
     if (target_stype == kDefaultStorage) {
       dispatched = storage_type_assign(&out_stype, kDefaultStorage, dispatch_mode,
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
                                        DispatchMode::kFComputeEx);
 #else
                                        DispatchMode::kFCompute);
@@ -1287,7 +1288,7 @@ inline bool DotShape(const nnvm::NodeAttrs& attrs,
   return shape_is_known((*out_attrs)[0]);
 }
 
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
 inline void DotForwardExMKLDNN(const nnvm::NodeAttrs& attrs,
                                const OpContext& ctx,
                                const std::vector<NDArray>& inputs,
@@ -1304,7 +1305,7 @@ void DotForwardEx(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(inputs.size(), 2U);
   CHECK_EQ(outputs.size(), 1U);
   CHECK_EQ(req.size(), 1U);
-#if MXNET_USE_MKLDNN == 1
+#if MXNET_USE_ONEDNN == 1
   if (common::ContainsOnlyStorage(inputs, kDefaultStorage) &&
       common::ContainsOnlyStorage(outputs, kDefaultStorage)) {
     if (std::is_same<xpu, cpu>::value) {
